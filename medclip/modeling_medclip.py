@@ -83,7 +83,7 @@ class MedCLIPVisionModel(nn.Module):
         img_embeds = self.model(pixel_values)
         return img_embeds
     
-class MedClipVisionModelDino(nn.Module):
+class MedCLIPVisionModelDino(nn.Module):
     '''take a Dino model as the backbone.
     '''
     def __init__(self, checkpoint=None, medclip_checkpoint=None) -> None:
@@ -191,7 +191,7 @@ class MedCLIPModel(nn.Module):
         ) -> None:
         super().__init__()
         text_proj_bias = False
-        assert vision_cls in [MedCLIPVisionModel, MedCLIPVisionModelViT, MedClipVisionModelDino], 'vision_cls should be one of [MedCLIPVisionModel, MedCLIPVisionModelViT]'
+        assert vision_cls in [MedCLIPVisionModel, MedCLIPVisionModelViT, MedCLIPVisionModelDino], 'vision_cls should be one of [MedCLIPVisionModel, MedCLIPVisionModelViT]'
 
         self.vision_model = vision_cls(checkpoint=vision_checkpoint)
         self.text_model = MedCLIPTextModel(proj_bias=False)
@@ -221,7 +221,7 @@ class MedCLIPModel(nn.Module):
             pretrained_url = constants.PRETRAINED_URL_MEDCLIP_VIT
             if input_dir is None:
                 input_dir = './pretrained/medclip-vit'
-        elif isinstance(self.vision_model, MedClipVisionModelDino):
+        elif isinstance(self.vision_model, MedCLIPVisionModelDino):
             # Dino
             pretrained_url = constants.PRETRAINED_URL_MEDCLIP_DINO
             if input_dir is None:
