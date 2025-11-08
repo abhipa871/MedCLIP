@@ -2,6 +2,7 @@ import pdb
 import os
 import copy
 from collections import defaultdict
+from xml.parsers.expat import model
 import requests
 
 import torch
@@ -11,6 +12,7 @@ import numpy as np
 import torchvision
 
 from . import constants
+from dinov3.eval.text.vision_tower import VisionHead
 
 class MedCLIPTextModel(nn.Module):
     def __init__(self,
@@ -80,6 +82,60 @@ class MedCLIPVisionModel(nn.Module):
         if pixel_values.shape[1] == 1: pixel_values = pixel_values.repeat((1,3,1,1))
         img_embeds = self.model(pixel_values)
         return img_embeds
+    
+class MedClipVisionModelDino(nn.Module):
+    '''take a Dino model as the backbone.
+    '''
+    def __init__(self, checkpoint=None, medclip_checkpoint=None) -> None:
+        '''args:
+        checkpoint: load from the vision encoder checkpoint
+        medclip_checkpoint: load from the vision-text dual encoders checkpoint
+        '''
+        super().__init__()
+        self.dino_type = constants.DINO_TYPE
+        self.model = AutoModel.from_pretrained(self.dino_type)
+        self.input_block_dim = model.config.hidden_size
+        self.num_heads = model.config.num_attention_heads
+        self.transformer_blocks_project = VisionHead(input_dim=self.input_block_dim, embed_dim = 512, num_heads=self.num_heads, num_blocks = 2, blocks_drop_path=0.3, use_class_token=True, use_patch_tokens=True, use_linear_projection=True)
+        self.transformer_blocks_project.init_weights()
+        self.transformer_blocks = VisionHead(input_dim=self.input_block_dim, embed_dim = 768, num_heads=self.num_heads, num_blocks = 2, blocks_drop_path=0.3, use_class_token=True, use_patch_tokens=True, use_linear_projection=True)
+        self.transformer_blocks.init_weights()
+        if checkpoint is not None:
+            state_dict = torch.load(os.path.join(checkpoint, constants.WEIGHTS_NAME))
+            missing_keys, unexpected_keys = self.load_state_dict(state_dict, strict=False)
+            print('missing keys:', missing_keys)
+            print('unexpected keys:', unexpected_keys)
+            print('load model weight from:', checkpoint)
+        if medclip_checkpoint is not None:
+            self.load_from_medclip(medclip_checkpoint)
+   # Change later if we need to load dino weights
+    def load_from_medclip(self, checkpoint):
+        '''handle key mismatch of medclip and the vision encoder.
+        '''
+        state_dict = torch.load(os.path.join(checkpoint, constants.WEIGHTS_NAME))
+        new_state_dict = {}
+        for key in state_dict.keys():
+            if 'vision_model' in key:
+                new_state_dict[key.replace('vision_model.','')] = state_dict[key]
+        missing_keys, unexpected_keys = self.load_state_dict(new_state_dict, strict=False)
+        print('missing keys:', missing_keys)
+        print('unexpected keys:', unexpected_keys)
+        print('load model weight from:', checkpoint)
+
+    def forward(self, pixel_values, project=True):
+        '''args:
+        pixel_values: tensor with shape [bs, 3, img_size, img_size]
+        '''
+        if pixel_values.shape[1] == 1: pixel_values = pixel_values.repeat((1,3,1,1))
+        output = self.model(pixel_values)
+        if project:
+            embeddings = self.transformer_blocks_project(output.last_hidden_state)
+        else:
+            embeddings = self.transformer_blocks(output.last_hidden_state)
+        cls_token = embeddings[:, 0, :]
+        patch_tokens = embeddings[:, 1 + self.model.config.num_register_tokens:, :].mean(axis=1)
+        img_embeds = torch.cat((cls_token, patch_tokens), dim=1)
+        return img_embeds
 
 class MedCLIPVisionModelViT(nn.Module):
     '''take an VIT model as the backbone.
@@ -135,7 +191,7 @@ class MedCLIPModel(nn.Module):
         ) -> None:
         super().__init__()
         text_proj_bias = False
-        assert vision_cls in [MedCLIPVisionModel, MedCLIPVisionModelViT], 'vision_cls should be one of [MedCLIPVisionModel, MedCLIPVisionModelViT]'
+        assert vision_cls in [MedCLIPVisionModel, MedCLIPVisionModelViT, MedClipVisionModelDino], 'vision_cls should be one of [MedCLIPVisionModel, MedCLIPVisionModelViT]'
 
         self.vision_model = vision_cls(checkpoint=vision_checkpoint)
         self.text_model = MedCLIPTextModel(proj_bias=False)
@@ -165,8 +221,13 @@ class MedCLIPModel(nn.Module):
             pretrained_url = constants.PRETRAINED_URL_MEDCLIP_VIT
             if input_dir is None:
                 input_dir = './pretrained/medclip-vit'
+        elif isinstance(self.vision_model, MedClipVisionModelDino):
+            # Dino
+            pretrained_url = constants.PRETRAINED_URL_MEDCLIP_DINO
+            if input_dir is None:
+                input_dir = './pretrained/medclip-dino'
         else:
-            raise ValueError(f'We only have pretrained weight for MedCLIP-ViT or MedCLIP-ResNet, get {type(self.vision_model)} instead.')
+            raise ValueError(f'We only have pretrained weight for MedCLIP-ViT, MedCLIP-ResNet, or MedCLIP-Dino, get {type(self.vision_model)} instead.')
 
         if not os.path.exists(input_dir):
             os.makedirs(input_dir)

@@ -3,6 +3,7 @@
 
 BERT_TYPE = 'emilyalsentzer/Bio_ClinicalBERT'
 VIT_TYPE = 'microsoft/swin-tiny-patch4-window7-224'
+DINO_TYPE = 'facebook/dinov3-vits16plus-pretrain-lvd1689m'
 
 IMG_SIZE = 224
 IMG_MEAN = .5862785803043838
@@ -169,3 +170,4 @@ WEIGHTS_NAME = 'pytorch_model.bin'
 # store the URL of pretrained weights, `dev` needs to change to `main` after merging it to main branch.
 PRETRAINED_URL_MEDCLIP_RESNET = 'https://github.com/RyanWangZf/MedCLIP/raw/main/medclip/medclip_resnet_weight.txt'
 PRETRAINED_URL_MEDCLIP_VIT = 'https://github.com/RyanWangZf/MedCLIP/raw/main/medclip/medclip_vit_weight.txt'
+PRETRAINED_URL_MEDCLIP_DINO = ''
