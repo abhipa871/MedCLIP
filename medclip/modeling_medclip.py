@@ -94,8 +94,8 @@ class MedCLIPVisionModelDino(nn.Module):
         super().__init__()
         self.dino_type = constants.DINO_TYPE
         self.model = AutoModel.from_pretrained(self.dino_type)
-        self.input_block_dim = model.config.hidden_size
-        self.num_heads = model.config.num_attention_heads
+        self.input_block_dim = self.model.config.hidden_size
+        self.num_heads = self.model.config.num_attention_heads
         self.transformer_blocks_project = VisionHead(input_dim=self.input_block_dim, embed_dim = 512, num_heads=self.num_heads, num_blocks = 2, blocks_drop_path=0.3, use_class_token=True, use_patch_tokens=True, use_linear_projection=True)
         self.transformer_blocks_project.init_weights()
         self.transformer_blocks = VisionHead(input_dim=self.input_block_dim, embed_dim = 768, num_heads=self.num_heads, num_blocks = 2, blocks_drop_path=0.3, use_class_token=True, use_patch_tokens=True, use_linear_projection=True)
