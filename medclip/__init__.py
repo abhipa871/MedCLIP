@@ -5,6 +5,7 @@ from .modeling_medclip import (
     MedCLIPTextModel, # text encoder
     MedCLIPVisionModel, # vision encoder (ResNet50)
     MedCLIPVisionModelViT, # vision encoder (Swin-Transformer)
+    MedCLIPVisionModelDino, # vision encoder (DINO)
     MedCLIPModel, # vision-language encoders
     PromptClassifier, # make classification based manual prompts
     PromptTuningClassifier, # make classification based on prompt tuning
