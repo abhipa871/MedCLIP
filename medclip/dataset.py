@@ -27,6 +27,10 @@ from .prompts import process_class_prompts, process_class_prompts_for_tuning
 from .prompts import generate_chexpert_class_prompts
 from . import constants
 
+
+def to_numpy_array(img) -> np.ndarray:
+    return np.array(img)
+
 class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
     def __init__(self, 
         do_resize=True, 
@@ -103,9 +107,11 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         # transformations (convert rgb + resizing + center cropping + normalization)
         if self.do_convert_rgb:
             images = [self.convert_to_rgb(image) for image in images]
-
+        
         if self.do_pad_square:
             images = [self.pad_img(image,min_size=self.size) for image in images]
+        
+        images = [to_numpy_array(image) for image in images]
         
         if self.do_resize and self.size is not None and self.resample is not None:
             images = [
@@ -117,22 +123,24 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         if self.do_normalize:
             images = [self.normalize(image=image, mean=self.image_mean, std=self.image_std) for image in images]
 
+        # add a RGB dim for each image
+        images = [np.transpose(image, (2, 0, 1)) for image in images]
+
         # return as BatchFeature
         data = {"pixel_values": images}
         encoded_inputs = BatchFeature(data=data, tensor_type=return_tensors)
 
         return encoded_inputs
 
-    def pad_img(self, img, min_size=224, fill_color=0):
+    def pad_img(self, img, min_size=224, fill_color=(0, 0, 0)):
         '''pad img to square.
         '''
-
         x, y = img.size
-        min_size = max(min_size.values())
-        size = max(min_size, x, y)
-        new_im = Image.new('L', (size, size), fill_color)
+        size = max(min_size["shortest_edge"], x, y)
+        new_im = Image.new('RGB', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
+    
     def convert_to_rgb(self, image):
         """
         Converts an image to RGB format. Only converts if the image is of type PIL.Image.Image, otherwise returns the image
@@ -149,7 +157,6 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
 
         image = image.convert("RGB")
         return image
-
 
 class MedCLIPProcessor(CLIPProcessor):
     '''
