@@ -103,7 +103,7 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
 
         # transformations (convert rgb + resizing + center cropping + normalization)
         if self.do_convert_rgb:
-            images = [self.convert_rgb(image) for image in images]
+            images = [self.convert_to_rgb(image) for image in images]
 
         if self.do_pad_square:
             images = [self.pad_img(image,min_size=self.size) for image in images]
@@ -140,6 +140,23 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         new_im = Image.new('L', (size, size), fill_color)
         new_im.paste(img, (int((size - x) / 2), int((size - y) / 2)))
         return new_im
+    def convert_to_rgb(self, image):
+        """
+        Converts an image to RGB format. Only converts if the image is of type PIL.Image.Image, otherwise returns the image
+        as is.
+        Args:
+            image (Image):
+                The image to convert.
+        """
+        if not isinstance(image, Image.Image):
+            return image
+
+        if image.mode == "RGB":
+            return image
+
+        image = image.convert("RGB")
+        return image
+
 
 class MedCLIPProcessor(CLIPProcessor):
     '''
