@@ -133,7 +133,7 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
 
     def pad_img(self, img, min_size=224, fill_color=0):
         '''pad img to square.
-        ''''
+        '''
         print(type(x))
         print(type(y))
         print(x)
