@@ -120,9 +120,18 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         # add a RGB dim for each image
         images_ = []
         for image in images:
-            if len(image.shape) == 2:
-                image = image[None]
-            images_.append(image)
+            if isinstance(image, Image.Image):
+                image = np.array(image)  # convert PIL → numpy
+
+            if image.ndim == 2:
+                image = image[None]  # add missing channel dim for grayscale
+
+            if image.ndim == 3 and image.shape[0] not in [1,3]:
+                # convert HWC → CHW
+                image = np.transpose(image, (2,0,1))
+
+            images_.append(image.astype(np.float32))
+
         images = images_
 
         # return as BatchFeature
