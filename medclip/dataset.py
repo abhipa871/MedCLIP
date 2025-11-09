@@ -12,11 +12,10 @@ from torch import nn
 from torchvision import transforms
 
 from transformers import AutoTokenizer
-from transformers import CLIPProcessor, CLIPImageProcessor
+from transformers import CLIPFeatureExtractor, CLIPProcessor
 from transformers.utils import TensorType
 from transformers.feature_extraction_utils import BatchFeature
 from transformers.image_utils import is_torch_tensor
-CLIPFeatureExtractor = CLIPImageProcessor
 
 # from nltk.tokenize import RegexpTokenizer
 import nltk
