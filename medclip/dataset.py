@@ -117,23 +117,6 @@ class MedCLIPFeatureExtractor(CLIPFeatureExtractor):
         if self.do_normalize:
             images = [self.normalize(image=image, mean=self.image_mean, std=self.image_std) for image in images]
 
-        # add a RGB dim for each image
-        images_ = []
-        for image in images:
-            if isinstance(image, Image.Image):
-                image = np.array(image)  # convert PIL → numpy
-
-            if image.ndim == 2:
-                image = image[None]  # add missing channel dim for grayscale
-
-            if image.ndim == 3 and image.shape[0] not in [1,3]:
-                # convert HWC → CHW
-                image = np.transpose(image, (2,0,1))
-
-            images_.append(image.astype(np.float32))
-
-        images = images_
-
         # return as BatchFeature
         data = {"pixel_values": images}
         encoded_inputs = BatchFeature(data=data, tensor_type=return_tensors)
